@@ -13,12 +13,6 @@ public class PlayerCombat : MonoBehaviour
 	[SerializeField] HitReactionSO normalHitReactionAnimOverride;
 	[SerializeField] HitReactionSO blockHitReactionAnimOverride;
 
-	//	[Header("Player combat attributes")]
-	//	[SerializeField] private float distanceThreshold;
-	//	[SerializeField] private float detectionConeAngle;
-	//	[SerializeField] private float detectionConeRadius;
-	//	[SerializeField] private Transform detectionRayStartPoint;
-
 	[Header("Player references")]
 	[SerializeField] private Animator _playerAnimator;
 	[SerializeField] private WeaponHandler _weaponHandler;
@@ -36,68 +30,53 @@ public class PlayerCombat : MonoBehaviour
 	private InputAction _heavyAttack;
 	private InputAction _block;
 
-	private CharacterController _characterController;
 	private DamageRegister _damageRegister;
-	private Transform enemyTarget;
 
 	private void Start()
 	{
 		_damageRegister = GetComponent<DamageRegister>();
-		_characterController = GetComponent<CharacterController>();
-
 		_playerInput = InputProvider.GetPlayerInput();
 		_block = _playerInput.actions["Block"];
 		_basicAttack = _playerInput.actions["BasicAttack"];
 		_heavyAttack = _playerInput.actions["HeavyAttack"];
 
+		CheckReferences();
 	}
 
 	private void Update()
 	{
-		if (_basicAttack.WasPressedThisFrame())
+		if (!_playerAnimator.GetCurrentAnimatorStateInfo(0).IsName("PlayerIntro"))
 		{
-			//EnemyDetection();
-			LightAttack();
-		}
-		if (_heavyAttack.WasPerformedThisFrame())
-		{
-			//EnemyDetection();
-			HeavyAttack();
+			if (_basicAttack.WasPressedThisFrame())
+			{
+				LightAttack();
+			}
+			if (_heavyAttack.WasPerformedThisFrame())
+			{
+				HeavyAttack();
+			}
 		}
 		if (isAttacking)
 		{
 			EndAttack();
 		}
+
 		Block();
 	}
 
-	//	private void EnemyDetection()
-	//	{
-	//		Collider[] hitColliders = Physics.OverlapSphere(transform.position, detectionConeRadius); // Overlap sphere to get all colliders within the radius
+	private void CheckReferences()
+	{
+		// Checking if required references are assigned
+		if (_playerAnimator == null)
+		{
+			Debug.LogError("Player Animator reference not assigned in PlayerCombat script!");
+		}
 
-	//		foreach (var hitCollider in hitColliders)
-	//		{
-	//			if (hitCollider.CompareTag("Enemy"))
-	//			{
-	//				Vector3 toEnemy = hitCollider.transform.position - transform.position;
-	//				float angleToEnemy = Vector3.Angle(detectionRayStartPoint.forward, toEnemy); // Calculate angle between forward and enemy direction
-
-	//				if (angleToEnemy <= detectionConeAngle * 0.5f) // Check if the enemy is within the detection cone
-	//				{
-	//					enemyTarget = hitCollider.transform;
-	//					_characterController.enabled = false;
-	//					lerpStartPos = transform.position;
-
-	//					lerpTarget = enemyTarget.position + ((transform.position - enemyTarget.position).normalized * distanceThreshold);
-
-	//					lerpTimer = 0;
-	//					lerpingToEnemy = true;
-
-	//					break;
-	//				}
-	//			}
-	//		}
-	//	}
+		if (_weaponHandler == null)
+		{
+			Debug.LogError("Weapon Handler reference not assigned in PlayerCombat script!");
+		}
+	}
 
 	//	//Light attack combo count and reset
 	void LightAttack()
@@ -132,7 +111,6 @@ public class PlayerCombat : MonoBehaviour
 				isAttacking = true;
 				_playerAnimator.runtimeAnimatorController = heavyAttack[comboCounter]._AOVController;
 				_playerAnimator.Play("Attack", 0, 0);
-				_playerAnimator.SetTrigger("isAttacking");
 				_weaponHandler.SetAttackDamage(heavyAttack[comboCounter].damage);
 				comboCounter++;
 				lastClickedTime = Time.time;
@@ -161,6 +139,7 @@ public class PlayerCombat : MonoBehaviour
 		Invoke("EndCombo", 1);
 	}
 
+	//Called through Invoke in EndAttack()
 	void EndCombo()
 	{
 		isAttacking = false;
