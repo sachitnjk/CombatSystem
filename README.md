@@ -39,6 +39,7 @@
 
 ![Image to show contents of Combat System](./CombatSystemContents.png)
 
+---
 
 # Instructions to use it in your project
 
@@ -62,6 +63,8 @@
 
 5. On any entity that is going to take damage, add the `DamageRegister` script. (More on [the `DamageRegister` script and it's use](#damage-register-script-and-its-use))
 
+---
+
 # Player prefab setup examples
 ![Image showing Player hierarchy](./PlayerHierarchy.png)
 
@@ -69,8 +72,80 @@
 
 ![Image showing Player VCam hierarchy](./PlayerHierarchy_VCam.png)
 
-### `DamageRegister` script and it's use
+---
 
-### `AttackSO`, `BlockSO` and How to make your own
+## `DamageRegister` script and it's use
+- The `DamageRegister` and the `WeaponHandler` script work together but are not hard tied to each other.
+- The `DamageRegister` script is incharge of calculating the damage and also inchrage of applying the damage.
+- The applying of damage occurs through the `ApplyDamage` function called by the `WeaponHandler` from the entity imposing the damage.
 
-### `WeaponHandler` and where to add it
+```c#
+	public void ApplyDamage(float recievedDamage)
+	{
+		CalculateDamageRecieved(recievedDamage);
+		damageTaken = true;
+
+		//Invoking the declared Action
+		OnDamageApply?.Invoke(recievedDamage);
+
+		StartCoroutine(ResetDamageTaken());
+	}
+```
+- In this script, the `OnDamageApply` and `OnResetDamage` are actions declared in the begining of the script which can be subscribed to for functionalities such as playing animations, sounds, vfx, etc.
+```c#
+	public Action <float> OnDamageApply;
+	public Action OnResetDamage;
+```
+- For example: If the player is hitting an enemy and the enemy is taking damage, then the Enemy game object has the `DamageRegister` and the weapon of the player(with a collider **not mesh collider**) which deals the damage has the `WeaponHandler` script on it.
+- Refer to [More on `WeaponHandler` script](#weaponhandler-and-where-to-add-it).
+
+---
+
+## `WeaponHandler` and where to add it
+
+- The `WeaponHandler` script goes on the weapon that would be inflicting the damage.
+- This weapon must have a Collider (**Not Mesh collider**) that would be used for calling the `ApplyDamage` function from the `DamageRegister` of the entity the damage is being applied on.
+- When this 'ApplyDamage' fucntion is called, the damage is passed in as a parameter to it.
+- Output damage is calculated in the `DamageRegister` and the applied on the entity.
+```c#
+private void OnTriggerEnter(Collider other)
+	{
+		if (!other.gameObject.CompareTag("Player") && this.GetComponent<BoxCollider>().enabled)
+		{
+			isDamagingEntity = true;
+			DamageRegister damageRegister = other.gameObject.GetComponent<DamageRegister>();					
+			if(damageRegister != null )
+			{
+				//Apply damage to enemy that was hit
+				damageRegister.ApplyDamage(weaponDamageOnRuntime);
+			}
+		}
+		else
+		{
+			isDamagingEntity = false;
+		}
+	}
+```
+
+---
+
+## `AttackSO`, `BlockSO` and How to make your own
+
+- The `AttackSO` and the `BlockSO` take in an **Animation Override Controller** which is a component you can add in the project window by right-clicking in the project window and selecting `Animation Override Controller`.
+- The `Animation Override Controller` will need a **reference to the Animation Controller** (eg: player's animation controller) whose states it would be going through.
+- This Attack and Block SO scripts can be used however the user wants and can overrite any of the animation states but for clarity, overwritting Attack animation through `AttackSO` and Block animation through `BlockSO` makes sense.
+- This is how you can create an `AttackSO` and to create a `BlockSO` just click on `HitReactions` instead.
+
+![Image showing creation of AttackSO/BlockSO](./SOCreation.png)
+
+- This shows where the refernce to the animation override controller should be provided.
+
+![Image showing AttackSO reference to it's AOC](./AttackSO_AOCRef.png)
+
+- This shows where the enity's(with the `PlayerCombat` script attached) animation controller should be referenced.
+
+![Image showing Animation Override Controller](./AOC.png)
+
+- All the `AttackSO`'s and the `BlockSO`'s should be added to the list in the `PlayerCombat` script.
+
+![Image showing AttackSO's added to PlayerCombat script](./AttackSOAddedToPlayerCombat.png)
